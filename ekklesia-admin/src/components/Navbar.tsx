@@ -1,9 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/images/logo.jpeg';
+import { getMe, User } from '../api/users';
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const userData = await getMe();
+        setUser(userData);
+      } catch (err) {
+        setError('Failed to fetch user data');
+        console.error(err);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('ekklesia-token');
@@ -18,7 +35,12 @@ const Navbar: React.FC = () => {
           <img src={logo} alt="logo de l'église" className="h-full w-full object-cover" />
         </div>
       </div>
-      <div>
+      <div className="flex items-center">
+        {user ? (
+          <span className="text-gray-900 dark:text-white mr-4">{`${user.first_name} ${user.last_name}`}</span>
+        ) : (
+          <span className="text-gray-900 dark:text-white mr-4">{error || 'Loading...'}</span>
+        )}
         <button
           onClick={handleLogout}
           className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
