@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { getContributions, createContribution, Contribution, ContributionCreate, EkklesiaContributionType, PaymentStatus } from '../api/contributions';
+import { getContributions, createContribution, Contribution, ContributionCreate } from '../api/contributions';
+import { EkklesiaContributionType, PaymentStatus } from '../api/enums';
+
 
 const PAGE_LIMIT = 10;
 
@@ -16,7 +18,7 @@ const Contributions: React.FC = () => {
       setLoading(true);
       const data = await getContributions(currentSkip, PAGE_LIMIT);
       setContributions(data);
-    } catch (err) {
+    } catch (err) => {
       setError('Failed to fetch contributions');
     } finally {
       setLoading(false);

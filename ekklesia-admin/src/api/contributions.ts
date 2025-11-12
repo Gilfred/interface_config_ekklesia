@@ -1,16 +1,5 @@
 import axiosInstance from './axiosInstance';
-
-export enum EkklesiaContributionType {
-  don = "don",
-  offrande = "offrande",
-  dime = "dime",
-}
-
-export enum PaymentStatus {
-  PENDING = "pending",
-  COMPLETED = "completed",
-  FAILED = "failed",
-}
+import { EkklesiaContributionType, PaymentStatus } from './enums';
 
 export interface Contribution {
   id: number;
