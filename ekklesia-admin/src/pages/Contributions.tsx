@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { getContributions, createContribution, Contribution, ContributionCreate, ContributionType, PaymentStatus } from '../api/contributions';
+import { getContributions, createContribution, Contribution, ContributionCreate, EkklesiaContributionType, PaymentStatus } from '../api/contributions';
 
 const PAGE_LIMIT = 10;
 
@@ -50,7 +50,7 @@ const Contributions: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <input type="number" placeholder="User ID" {...register('user_id', { required: true })} className="p-2 border rounded-md" />
           <select {...register('type', { required: true })} className="p-2 border rounded-md">
-            {Object.values(ContributionType).map(type => <option key={type} value={type}>{type}</option>)}
+            {Object.values(EkklesiaContributionType).map(type => <option key={type} value={type}>{type}</option>)}
           </select>
           <input type="number" placeholder="Amount" {...register('amount', { required: true })} className="p-2 border rounded-md" />
           <input type="number" placeholder="Payment Method ID" {...register('payment_method_id', { required: true })} className="p-2 border rounded-md" />

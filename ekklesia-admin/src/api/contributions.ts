@@ -1,6 +1,6 @@
 import axiosInstance from './axiosInstance';
 
-export enum ContributionType {
+export enum EkklesiaContributionType {
   don = "don",
   offrande = "offrande",
   dime = "dime",
@@ -15,7 +15,7 @@ export enum PaymentStatus {
 export interface Contribution {
   id: number;
   user_id: number;
-  type: ContributionType;
+  type: EkklesiaContributionType;
   amount: number;
   payment_method_id: number;
   transaction_id: string | null;
@@ -28,7 +28,7 @@ export interface Contribution {
 
 export interface ContributionCreate {
   user_id: number;
-  type: ContributionType;
+  type: EkklesiaContributionType;
   amount: number;
   payment_method_id: number;
   transaction_id?: string;
