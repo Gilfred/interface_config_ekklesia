@@ -18,7 +18,7 @@ const Contributions: React.FC = () => {
       setLoading(true);
       const data = await getContributions(currentSkip, PAGE_LIMIT);
       setContributions(data);
-    } catch (err) => {
+    } catch (err) {
       setError('Failed to fetch contributions');
     } finally {
       setLoading(false);
