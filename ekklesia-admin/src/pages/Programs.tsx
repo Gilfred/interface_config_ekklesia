@@ -3,17 +3,18 @@ import { getPrograms, createProgram, deleteProgram } from '../api/programs';
 
 export interface Program {
   id: number;
-  name: string;
   description: string;
-  day: string;
-  time: string;
+  program_day: string;
+  hours_start: string;
+  user_id: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateProgramData {
-  name: string;
   description: string;
-  day: string;
-  time: string;
+  program_day: string;
+  hours_start: string;
 }
 
 const Programs: React.FC = () => {
@@ -23,10 +24,9 @@ const Programs: React.FC = () => {
 
   // State pour le formulaire d'ajout
   const [newProgram, setNewProgram] = useState<CreateProgramData>({
-    name: '',
     description: '',
-    day: 'Lundi',
-    time: '08:00'
+    program_day: 'Lundi',
+    hours_start: '08:00'
   });
   const [showForm, setShowForm] = useState(false);
 
@@ -63,8 +63,8 @@ const Programs: React.FC = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newProgram.name.trim()) {
-      setError('Le nom du programme est requis');
+    if (!newProgram.program_day.trim()) {
+      setError('Le jour du programme est requis');
       return;
     }
 
@@ -72,10 +72,9 @@ const Programs: React.FC = () => {
       const createdProgram = await createProgram(newProgram);
       setPrograms([...programs, createdProgram]);
       setNewProgram({
-        name: '',
         description: '',
-        day: 'Lundi',
-        time: '08:00'
+        program_day: 'Lundi',
+        hours_start: '08:00'
       });
       setShowForm(false);
       setError(null);
@@ -141,21 +140,6 @@ const Programs: React.FC = () => {
           </h4>
           <form onSubmit={handleAdd} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                Nom du programme *
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={newProgram.name}
-                onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                required
-              />
-            </div>
-            
-            <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Description
               </label>
@@ -172,13 +156,13 @@ const Programs: React.FC = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="day" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                <label htmlFor="program_day" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Jour *
                 </label>
                 <select
-                  id="day"
-                  name="day"
-                  value={newProgram.day}
+                  id="program_day"
+                  name="program_day"
+                  value={newProgram.program_day}
                   onChange={handleInputChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
@@ -190,13 +174,13 @@ const Programs: React.FC = () => {
               </div>
               
               <div>
-                <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                <label htmlFor="hours_start" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Heure *
                 </label>
                 <select
-                  id="time"
-                  name="time"
-                  value={newProgram.time}
+                  id="hours_start"
+                  name="hours_start"
+                  value={newProgram.hours_start}
                   onChange={handleInputChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
@@ -227,7 +211,6 @@ const Programs: React.FC = () => {
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
               <tr>
-                <th scope="col" className="px-6 py-3">Nom du programme</th>
                 <th scope="col" className="px-6 py-3">Description</th>
                 <th scope="col" className="px-6 py-3">Jour</th>
                 <th scope="col" className="px-6 py-3">Heure</th>
@@ -237,17 +220,14 @@ const Programs: React.FC = () => {
             <tbody>
               {programs.map((program) => (
                 <tr key={program.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    {program.name}
-                  </td>
                   <td className="px-6 py-4">
                     {program.description || 'Aucune description'}
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                    {program.day}
+                    {program.program_day}
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                    {program.time}
+                    {program.hours_start}
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <button className="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">

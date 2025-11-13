@@ -1,8 +1,9 @@
+import { Event, CreateEventData } from '../pages/Events';
 import axiosInstance from './axiosInstance';
 
 // Les interfaces ont été déplacées vers Events.tsx
 
-export const getEvents = async (): Promise<any[]> => {
+export const getEvents = async (): Promise<Event[]> => {
   try {
     const response = await axiosInstance.get('/api/v1/events');
     return response.data;
@@ -12,7 +13,7 @@ export const getEvents = async (): Promise<any[]> => {
   }
 };
 
-export const createEvent = async (data: any): Promise<any> => {
+export const createEvent = async (data: CreateEventData): Promise<Event> => {
   try {
     const response = await axiosInstance.post('/api/v1/events', data);
     return response.data;

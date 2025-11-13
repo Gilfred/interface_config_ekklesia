@@ -3,15 +3,20 @@ import { getEvents, createEvent, deleteEvent } from '../api/events';
 
 export interface Event {
   id: number;
-  name: string;
+  title: string;
   description: string;
-  date: string;
+  start_at: string;
+  end_at: string;
+  user_id: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateEventData {
-  name: string;
+  title: string;
   description: string;
-  date: string;
+  start_at: string;
+  end_at: string;
 }
 
 const Events: React.FC = () => {
@@ -21,9 +26,10 @@ const Events: React.FC = () => {
 
   // State pour le formulaire d'ajout
   const [newEvent, setNewEvent] = useState<CreateEventData>({
-    name: '',
+    title: '',
     description: '',
-    date: new Date().toISOString().slice(0, 10)
+    start_at: new Date().toISOString().slice(0, 16),
+    end_at: new Date().toISOString().slice(0, 16)
   });
   const [showForm, setShowForm] = useState(false);
 
@@ -61,8 +67,8 @@ const Events: React.FC = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newEvent.name.trim()) {
-      setError('Le nom de l\'événement est requis');
+    if (!newEvent.title.trim()) {
+      setError('Le titre de l\'événement est requis');
       return;
     }
 
@@ -70,9 +76,10 @@ const Events: React.FC = () => {
       const createdEvent = await createEvent(newEvent);
       setEvents([...events, createdEvent]);
       setNewEvent({
-        name: '',
+        title: '',
         description: '',
-        date: new Date().toISOString().slice(0, 10)
+        start_at: new Date().toISOString().slice(0, 16),
+        end_at: new Date().toISOString().slice(0, 16)
       });
       setShowForm(false);
       setError(null);
@@ -119,14 +126,14 @@ const Events: React.FC = () => {
           </h4>
           <form onSubmit={handleAdd} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                Nom de l'événement *
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Titre de l'événement *
               </label>
               <input
                 type="text"
-                id="name"
-                name="name"
-                value={newEvent.name}
+                id="title"
+                name="title"
+                value={newEvent.title}
                 onChange={handleInputChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
@@ -147,19 +154,35 @@ const Events: React.FC = () => {
               />
             </div>
             
-            <div>
-              <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                Date *
-              </label>
-              <input
-                type="date"
-                id="date"
-                name="date"
-                value={newEvent.date}
-                onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="start_at" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Date de début *
+                </label>
+                <input
+                  type="datetime-local"
+                  id="start_at"
+                  name="start_at"
+                  value={newEvent.start_at}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="end_at" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Date de fin *
+                </label>
+                <input
+                  type="datetime-local"
+                  id="end_at"
+                  name="end_at"
+                  value={newEvent.end_at}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+              </div>
             </div>
             
             <button
@@ -181,8 +204,9 @@ const Events: React.FC = () => {
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
               <tr>
-                <th scope="col" className="px-6 py-3">Nom de l'événement</th>
-                <th scope="col" className="px-6 py-3">Date</th>
+                <th scope="col" className="px-6 py-3">Titre</th>
+                <th scope="col" className="px-6 py-3">Début</th>
+                <th scope="col" className="px-6 py-3">Fin</th>
                 <th scope="col" className="px-6 py-3">Description</th>
                 <th scope="col" className="px-6 py-3 text-right">Actions</th>
               </tr>
@@ -191,10 +215,13 @@ const Events: React.FC = () => {
               {events.map((event) => (
                 <tr key={event.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                   <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    {event.name}
+                    {event.title}
                   </td>
                   <td className="px-6 py-4">
-                    {new Date(event.date).toLocaleDateString('fr-FR')}
+                    {new Date(event.start_at).toLocaleString('fr-FR')}
+                  </td>
+                  <td className="px-6 py-4">
+                    {new Date(event.end_at).toLocaleString('fr-FR')}
                   </td>
                   <td className="px-6 py-4">
                     {event.description || 'Aucune description'}

@@ -1,47 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { getMedias, createMedia, deleteMedia } from '../api/medias';
+import { getEvents } from '../api/events';
+import { Event } from './Events';
 
 export interface Media {
   id: number;
-  title: string;
-  type: string;
-  url: string;
+  type: 'image' | 'video';
+  file_path: string;
+  event_id: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateMediaData {
-  title: string;
-  type: string;
-  url: string;
+  type: 'image' | 'video';
+  file_path: string;
+  event_id?: number;
 }
 
 const Medias: React.FC = () => {
   const [medias, setMedias] = useState<Media[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // State pour le formulaire d'ajout
   const [newMedia, setNewMedia] = useState<CreateMediaData>({
-    title: '',
     type: 'image',
-    url: ''
+    file_path: ''
   });
   const [showForm, setShowForm] = useState(false);
 
-  const fetchMedias = async () => {
+  const fetchMediasAndEvents = async () => {
     try {
       setLoading(true);
-      const data = await getMedias();
-      setMedias(data);
+      const [mediasData, eventsData] = await Promise.all([getMedias(), getEvents()]);
+      setMedias(mediasData);
+      setEvents(eventsData);
     } catch (error) {
-      console.error('Failed to fetch medias', error);
-      setError('Erreur lors du chargement des médias');
+      console.error('Failed to fetch data', error);
+      setError('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMedias();
+    fetchMediasAndEvents();
   }, []);
 
   const handleDelete = async (id: number) => {
@@ -61,8 +66,8 @@ const Medias: React.FC = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newMedia.title.trim() || !newMedia.url.trim()) {
-      setError('Le titre et l\'URL sont requis');
+    if (!newMedia.file_path.trim()) {
+      setError('L\'URL du fichier est requise');
       return;
     }
 
@@ -70,9 +75,8 @@ const Medias: React.FC = () => {
       const createdMedia = await createMedia(newMedia);
       setMedias([...medias, createdMedia]);
       setNewMedia({
-        title: '',
         type: 'image',
-        url: ''
+        file_path: ''
       });
       setShowForm(false);
       setError(null);
@@ -119,21 +123,6 @@ const Medias: React.FC = () => {
           </h4>
           <form onSubmit={handleAdd} className="space-y-4">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                Titre *
-              </label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={newMedia.title}
-                onChange={handleInputChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                required
-              />
-            </div>
-            
-            <div>
               <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Type *
               </label>
@@ -147,20 +136,18 @@ const Medias: React.FC = () => {
               >
                 <option value="image">Image</option>
                 <option value="video">Vidéo</option>
-                <option value="audio">Audio</option>
-                <option value="document">Document</option>
               </select>
             </div>
             
             <div>
-              <label htmlFor="url" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                URL *
+              <label htmlFor="file_path" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                URL du fichier *
               </label>
               <input
                 type="url"
-                id="url"
-                name="url"
-                value={newMedia.url}
+                id="file_path"
+                name="file_path"
+                value={newMedia.file_path}
                 onChange={handleInputChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="https://example.com/image.jpg"
@@ -168,6 +155,24 @@ const Medias: React.FC = () => {
               />
             </div>
             
+            <div>
+              <label htmlFor="event_id" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                Événement (optionnel)
+              </label>
+              <select
+                id="event_id"
+                name="event_id"
+                value={newMedia.event_id || ''}
+                onChange={handleInputChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">Aucun</option>
+                {events.map(event => (
+                  <option key={event.id} value={event.id}>{event.title}</option>
+                ))}
+              </select>
+            </div>
+
             <button
               type="submit"
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
@@ -184,63 +189,56 @@ const Medias: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {medias.map((media) => (
-            <div key={media.id} className="bg-white rounded-lg shadow-md dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-700 transition-transform hover:scale-105">
-              <div className="h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                {media.type === 'image' ? (
-                  <img 
-                    src={media.url} 
-                    alt={media.title} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Non+Disponible';
-                    }}
-                  />
-                ) : media.type === 'video' ? (
-                  <div className="flex items-center justify-center w-full h-full bg-gray-300 dark:bg-gray-600">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">🎥</div>
-                      <p className="text-sm">Vidéo</p>
+          {medias.map((media) => {
+            const event = media.event_id ? events.find(e => e.id === media.event_id) : null;
+            return (
+              <div key={media.id} className="bg-white rounded-lg shadow-md dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-700 transition-transform hover:scale-105">
+                <div className="h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                  {media.type === 'image' ? (
+                    <img
+                      src={media.file_path}
+                      alt={event ? event.title : 'Média'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Non+Disponible';
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full bg-gray-300 dark:bg-gray-600">
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">🎥</div>
+                        <p className="text-sm">Vidéo</p>
+                      </div>
                     </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{media.type}</p>
+                  {event && (
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      Événement : <span className="font-semibold">{event.title}</span>
+                    </p>
+                  )}
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <a
+                      href={media.file_path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200"
+                    >
+                      Voir
+                    </a>
+                    <button
+                      onClick={() => handleDelete(media.id)}
+                      className="px-3 py-1 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200"
+                    >
+                      Supprimer
+                    </button>
                   </div>
-                ) : media.type === 'audio' ? (
-                  <div className="flex items-center justify-center w-full h-full bg-gray-300 dark:bg-gray-600">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">🎵</div>
-                      <p className="text-sm">Audio</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center w-full h-full bg-gray-300 dark:bg-gray-600">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">📄</div>
-                      <p className="text-sm">Document</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="p-4">
-                <h5 className="text-lg font-bold text-gray-900 dark:text-white truncate">{media.title}</h5>
-                <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{media.type}</p>
-                <div className="mt-4 flex justify-end space-x-2">
-                  <a 
-                    href={media.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200"
-                  >
-                    Voir
-                  </a>
-                  <button
-                    onClick={() => handleDelete(media.id)}
-                    className="px-3 py-1 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200"
-                  >
-                    Supprimer
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
