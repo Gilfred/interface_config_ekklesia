@@ -14,6 +14,12 @@ export interface Media {
   updated_at: string;
 }
 
+export interface MediaCreate {
+  event_id: number;
+  file: File;
+  title?: string;
+}
+
 const Medias: React.FC = () => {
   const [medias, setMedias] = useState<Media[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,7 +74,7 @@ const Medias: React.FC = () => {
     }
 
     try {
-      await createMedia(eventId, file);
+      await createMedia({ event_id: eventId, file });
       setEventId(0);
       setFile(null);
       setShowForm(false);

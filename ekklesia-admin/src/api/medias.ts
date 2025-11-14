@@ -1,6 +1,7 @@
 import axiosInstance from './axiosInstance';
+import { Media, MediaCreate } from '../pages/Medias';
 
-export const getMedias = async (): Promise<any[]> => {
+export const getMedias = async (): Promise<Media[]> => {
   try {
     const response = await axiosInstance.get('/api/v1/medias');
     return response.data;
@@ -10,13 +11,14 @@ export const getMedias = async (): Promise<any[]> => {
   }
 };
 
-export const createMedia = async (eventId: number, file: File, title?: string): Promise<any> => {
+export const createMedia = async (mediaData: MediaCreate): Promise<Media> => {
   const formData = new FormData();
-  formData.append('event_id', eventId.toString());
-  formData.append('file', file);
+  formData.append('event_id', mediaData.event_id.toString());
+  formData.append('file', mediaData.file);
 
-  // Ajouter le champ optionnel s'il est fourni
-  if (title) formData.append('title', title);
+  if (mediaData.title) {
+    formData.append('title', mediaData.title);
+  }
 
   try {
     const response = await axiosInstance.post('/api/v1/medias/', formData, {
