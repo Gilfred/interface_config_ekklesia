@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { getPrograms, createProgram, deleteProgram, updateProgram } from '../api/programs';
 
+import { format } from 'date-fns';
+
 export interface Program {
   id: number;
-  program_day: string;
+  program_day: string; // Format YYYY-MM-DD
   hours_start: string;
   description: string;
   user_id: number;
@@ -12,8 +14,8 @@ export interface Program {
   updated_at: string;
 }
 
-export interface CreateProgramData {
-  program_day: string;
+export interface ProgramData {
+  program_day: string; // Format YYYY-MM-DD
   hours_start: string;
   description: string;
 }
@@ -22,8 +24,8 @@ const Programs: React.FC = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [newProgram, setNewProgram] = useState<CreateProgramData>({
-    program_day: 'Lundi',
+  const [newProgram, setNewProgram] = useState<ProgramData>({
+    program_day: format(new Date(), 'yyyy-MM-dd'),
     hours_start: '08:00',
     description: '',
   });
@@ -72,7 +74,7 @@ const Programs: React.FC = () => {
       const createdProgram = await createProgram(newProgram);
       setPrograms([...programs, createdProgram]);
       setNewProgram({
-        program_day: 'Lundi',
+        program_day: format(new Date(), 'yyyy-MM-dd'),
         hours_start: '08:00',
         description: ''
       });
@@ -122,11 +124,6 @@ const Programs: React.FC = () => {
     setEditingProgram(program);
     setShowForm(true);
   };
-
-  // Liste des jours de la semaine
-  const daysOfWeek = [
-    'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'
-  ];
 
   // Générer les heures de la journée
   const generateTimeOptions = () => {
@@ -194,20 +191,17 @@ const Programs: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="program_day" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Jour *
+                  Date *
                 </label>
-                <select
+                <input
+                  type="date"
                   id="program_day"
                   name="program_day"
                   value={editingProgram ? editingProgram.program_day : newProgram.program_day}
                   onChange={handleInputChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
-                >
-                  {daysOfWeek.map(day => (
-                    <option key={day} value={day}>{day}</option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
