@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getPrograms, deleteProgram } from '../api/programs';
 import { Pencil, Trash2 } from 'lucide-react';
 
 export interface Program {
@@ -19,15 +20,15 @@ const Programs: React.FC = () => {
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
+        const data = await getPrograms();
+        setPrograms(data);
         // Le backend n'est pas disponible, nous utilisons donc des données fictives pour le moment.
-        // const data = await getPrograms();
-        // setPrograms(data);
-        const mockData: Program[] = [
+        /* const mockData: Program[] = [
           { id: 1, program_day: 'Lundi', hours_start: '18:00', description: 'Culte du soir', user_id: 1, created_at: '2023-01-01', updated_at: '2023-01-01' },
           { id: 2, program_day: 'Mercredi', hours_start: '19:00', description: 'Étude biblique', user_id: 1, created_at: '2023-01-02', updated_at: '2023-01-02' },
           { id: 3, program_day: 'Dimanche', hours_start: '10:00', description: 'Culte principal', user_id: 1, created_at: '2023-01-03', updated_at: '2023-01-03' },
         ];
-        setPrograms(mockData);
+        setPrograms(mockData); */
       } catch {
         setError('Échec de la récupération des programmes');
       } finally {
@@ -37,6 +38,17 @@ const Programs: React.FC = () => {
 
     fetchPrograms();
   }, []);
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce programme ?')) {
+      try {
+        await deleteProgram(id);
+        setPrograms(programs.filter((program) => program.id !== id));
+      } catch {
+        setError('Échec de la suppression du programme');
+      }
+    }
+  };
 
   return (
     <div className="container mx-auto">
@@ -78,7 +90,10 @@ const Programs: React.FC = () => {
                       <button className="text-gray-500 hover:text-blue-500">
                         <Pencil size={20} />
                       </button>
-                      <button className="text-gray-500 hover:text-red-500">
+                      <button
+                        onClick={() => handleDelete(program.id)}
+                        className="text-gray-500 hover:text-red-500"
+                      >
                         <Trash2 size={20} />
                       </button>
                     </div>
