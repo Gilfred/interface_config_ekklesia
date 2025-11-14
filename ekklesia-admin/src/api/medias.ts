@@ -10,11 +10,10 @@ export const getMedias = async (): Promise<any[]> => {
   }
 };
 
-export const createMedia = async (eventId: number, file: File, type: 'image' | 'video', title?: string): Promise<any> => {
+export const createMedia = async (eventId: number, file: File, title?: string): Promise<any> => {
   const formData = new FormData();
   formData.append('event_id', eventId.toString());
   formData.append('file', file);
-  formData.append('type', type);
 
   // Ajouter le champ optionnel s'il est fourni
   if (title) formData.append('title', title);

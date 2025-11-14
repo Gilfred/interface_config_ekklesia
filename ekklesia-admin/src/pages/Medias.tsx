@@ -20,9 +20,8 @@ const Medias: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [eventId, setEventId] = useState<number>(0);
   const [file, setFile] = useState<File | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [showForm, setShowForm] = useState(false);
-  const backendUrl = 'http://localhost:8000';
+  const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
   const fetchMedias = async () => {
     try {
@@ -69,10 +68,9 @@ const Medias: React.FC = () => {
     }
 
     try {
-      await createMedia(eventId, file, mediaType);
+      await createMedia(eventId, file);
       setEventId(0);
       setFile(null);
-      setMediaType('image');
       setShowForm(false);
       setError(null);
       fetchMedias(); // Actualiser la liste
@@ -125,21 +123,6 @@ const Medias: React.FC = () => {
               />
             </div>
             <div>
-              <label htmlFor="media_type" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                Type de média *
-              </label>
-              <select
-                id="media_type"
-                value={mediaType}
-                onChange={(e) => setMediaType(e.target.value as 'image' | 'video')}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                required
-              >
-                <option value="image">Image</option>
-                <option value="video">Vidéo</option>
-              </select>
-            </div>
-            <div>
               <label htmlFor="file_input" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Fichier *
               </label>
@@ -167,54 +150,57 @@ const Medias: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {medias.map((media) => (
-            <div key={media.id} className="bg-white rounded-lg shadow-md dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-700 transition-transform hover:scale-105">
-              <div className="h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                {media.type === 'image' ? (
-                  <img
-                    src={`${backendUrl}${media.file_path}`}
-                    alt={media.title || 'Media'}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Non+Disponible';
-                    }}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center w-full h-full bg-gray-300 dark:bg-gray-600">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">🎥</div>
-                      <p className="text-sm">Vidéo</p>
+          {medias.map((media) => {
+            const mediaUrl = `${backendUrl}/${media.file_path.replace('app/', '')}`;
+            return (
+              <div key={media.id} className="bg-white rounded-lg shadow-md dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-700 transition-transform hover:scale-105">
+                <div className="h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                  {media.type === 'image' ? (
+                    <img
+                      src={mediaUrl}
+                      alt={media.title || 'Media'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Non+Disponible';
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full bg-gray-300 dark:bg-gray-600">
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">🎥</div>
+                        <p className="text-sm">Vidéo</p>
+                      </div>
                     </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h5 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                    {media.title || `Media ${media.id}`}
+                  </h5>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{media.type}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    Événement: {media.event_id}
+                  </p>
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <a
+                      href={mediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200"
+                    >
+                      Voir
+                    </a>
+                    <button
+                      onClick={() => handleDelete(media.id)}
+                      className="px-3 py-1 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200"
+                    >
+                      Supprimer
+                    </button>
                   </div>
-                )}
-              </div>
-              <div className="p-4">
-                <h5 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                  {media.title || `Media ${media.id}`}
-                </h5>
-                <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{media.type}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  Événement: {media.event_id}
-                </p>
-                <div className="mt-4 flex justify-end space-x-2">
-                  <a
-                    href={`${backendUrl}${media.file_path}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200"
-                  >
-                    Voir
-                  </a>
-                  <button
-                    onClick={() => handleDelete(media.id)}
-                    className="px-3 py-1 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200"
-                  >
-                    Supprimer
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
