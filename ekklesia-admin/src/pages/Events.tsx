@@ -64,9 +64,15 @@ const Events: React.FC = () => {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (!newEvent.title.trim()) {
       setError('Le titre de l\'événement est requis');
+      return;
+    }
+
+    if (!newEvent.start_date || !newEvent.end_date) {
+      setError('Les dates de début et de fin sont requises.');
       return;
     }
 
@@ -86,7 +92,6 @@ const Events: React.FC = () => {
         end_date: ''
       });
       setShowForm(false);
-      setError(null);
     } catch (error) {
       console.error('Failed to add event', error);
       setError('Erreur lors de l\'ajout de l\'événement');
