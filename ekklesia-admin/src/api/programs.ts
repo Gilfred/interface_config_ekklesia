@@ -1,13 +1,21 @@
 import axiosInstance from './axiosInstance';
 
-// Les interfaces ont été déplacées vers Programs.tsx
-
 export const getPrograms = async (): Promise<any[]> => {
   try {
     const response = await axiosInstance.get('/api/v1/programs');
     return response.data;
   } catch (error) {
     console.error('Error fetching programs:', error);
+    throw error;
+  }
+};
+
+export const updateProgram = async (id: number, data: any): Promise<any> => {
+  try {
+    const response = await axiosInstance.put(`/api/v1/programs/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating program:', error);
     throw error;
   }
 };
