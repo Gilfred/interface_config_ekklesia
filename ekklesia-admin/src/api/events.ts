@@ -1,27 +1,31 @@
-import { axiosInstance } from './axiosInstance';
-
-export interface Event {
-  id: number;
-  title: string;
-  start_date: string;
-  end_date: string;
-  description: string;
-  user_id: number;
-}
-
-export interface EventCreate {
-  title: string;
-  start_date: string;
-  end_date: string;
-  description: string;
-}
+import axiosInstance from './axiosInstance';
+import { Event, CreateEventData } from '../pages/Events';
 
 export const getEvents = async (): Promise<Event[]> => {
-  const response = await axiosInstance.get('/events');
-  return response.data;
+  try {
+    const response = await axiosInstance.get('/api/v1/events');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    throw error;
+  }
 };
 
-export const createEvent = async (eventData: EventCreate): Promise<Event> => {
-  const response = await axiosInstance.post('/events', eventData);
-  return response.data;
+export const createEvent = async (data: CreateEventData): Promise<Event> => {
+  try {
+    const response = await axiosInstance.post('/api/v1/events', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating event:', error);
+    throw error;
+  }
+};
+
+export const deleteEvent = async (id: number): Promise<void> => {
+  try {
+    await axiosInstance.delete(`/api/v1/events/${id}`);
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    throw error;
+  }
 };
