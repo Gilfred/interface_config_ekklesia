@@ -1,21 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getEvents, createEvent, deleteEvent } from '../api/events';
-
-export interface Event {
-  id: number;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  user_id: number;
-}
-
-export interface CreateEventData {
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-}
+import { Event, CreateEventData } from '../types/events';
 
 const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
