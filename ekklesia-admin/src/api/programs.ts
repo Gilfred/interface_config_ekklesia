@@ -1,7 +1,5 @@
 import axiosInstance from './axiosInstance';
 
-// Les interfaces ont été déplacées vers Programs.tsx
-
 export const getPrograms = async (): Promise<any[]> => {
   try {
     const response = await axiosInstance.get('/api/v1/programs');
