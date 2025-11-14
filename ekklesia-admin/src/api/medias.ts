@@ -1,5 +1,5 @@
 import axiosInstance from './axiosInstance';
-import { Media, MediaCreate } from '../pages/Medias';
+import { Media, MediaCreate } from '../types/medias';
 
 export const getMedias = async (): Promise<Media[]> => {
   try {

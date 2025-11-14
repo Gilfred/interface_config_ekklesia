@@ -25,7 +25,7 @@ const Users: React.FC = () => {
       try {
         const data = await getUsers();
         setUsers(data);
-      } catch {
+      } catch (err) {
         setError('Failed to fetch users');
       } finally {
         setLoading(false);
