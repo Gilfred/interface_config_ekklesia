@@ -71,7 +71,13 @@ const Events: React.FC = () => {
     }
 
     try {
-      const createdEvent = await createEvent(newEvent);
+      const eventDataToSend = {
+        ...newEvent,
+        start_date: new Date(newEvent.start_date).toISOString(),
+        end_date: new Date(newEvent.end_date).toISOString(),
+      };
+
+      const createdEvent = await createEvent(eventDataToSend);
       setEvents([...events, createdEvent]);
       setNewEvent({
         title: '',
