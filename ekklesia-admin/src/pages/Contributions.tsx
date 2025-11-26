@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getContributions } from '../api/contributions';
+import { getCurrentUser } from '../api/auth';
+import axiosInstance from '../api/axiosInstance';
+import { useKkiapay } from '../hooks/useKkiapay';
 
 export interface Contribution {
   id: number;
@@ -15,12 +18,363 @@ export interface Contribution {
   delete_date?: string;
 }
 
+// Composant de formulaire de paiement intégré
+interface KkiapayPaymentFormProps {
+  onPaymentSuccess?: (transactionId: string) => void;
+  onPaymentError?: (error: string) => void;
+  onClose: () => void;
+}
+
+// Interfaces pour Kkiapay
+interface KkiapayPaymentInit {
+  amount: number;
+  phone_number: string;
+  email?: string;
+  fullname?: string;
+  type: 'don' | 'offrande' | 'dime';
+}
+
+// Nouvelle interface pour la réponse du backend modifié
+interface PaymentResponse {
+  success: boolean;
+  contribution_id: number;
+  widget_data: {
+    amount: number;
+    public_key: string;
+    sandbox: boolean;
+    email: string;
+    phone: string;
+    name: string;
+    callback: string;
+    metadata: {
+      contribution_id: number;
+      user_id: number;
+    };
+  };
+}
+
+// Fonctions API pour Kkiapay
+const initKkiapayPayment = async (paymentData: KkiapayPaymentInit): Promise<PaymentResponse> => {
+  try {
+    const response = await axiosInstance.post('/payments/init', paymentData);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+    throw new Error('Erreur lors de l\'initialisation du paiement');
+  }
+};
+
+// Composant de formulaire de paiement
+const KkiapayPaymentForm: React.FC<KkiapayPaymentFormProps> = ({ 
+  onPaymentSuccess, 
+  onPaymentError,
+  onClose
+}) => {
+  const [formData, setFormData] = useState<KkiapayPaymentInit>({
+    amount: 0,
+    phone_number: '',
+    type: 'don'
+  });
+  const [loading, setLoading] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'completed' | 'failed'>('idle');
+  const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null);
+  
+  // Hook pour KkiaPay
+  const { isLoaded, openKkiapay } = useKkiapay();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = await getCurrentUser();
+        setFormData(prev => ({
+          ...prev,
+          email: user.email,
+          fullname: user.name
+        }));
+      } catch (error) {
+        console.error('Erreur lors de la récupération des données utilisateur:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'amount' ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    console.log('1. Début de handleSubmit');
+    
+    if (formData.amount < 100) {
+      alert('Le montant minimum est de 100 FCFA');
+      return;
+    }
+
+    if (!formData.phone_number) {
+      alert('Veuillez saisir votre numéro de téléphone');
+      return;
+    }
+
+    console.log('2. Vérification de isLoaded:', isLoaded);
+    if (!isLoaded) {
+      alert('Le système de paiement est en cours de chargement, veuillez réessayer dans quelques secondes');
+      return;
+    }
+
+    setLoading(true);
+    setPaymentStatus('pending');
+
+    try {
+      console.log('3. Appel de initKkiapayPayment...');
+      const response = await initKkiapayPayment(formData);
+      console.log('4. Réponse de initKkiapayPayment:', response);
+      
+      if (response.success && response.widget_data) {
+        const widgetData = response.widget_data;
+        console.log('5. Données du widget:', widgetData);
+        console.log('6. Ouverture du widget...');
+        
+        openKkiapay({
+          amount: widgetData.amount,
+          api_key: widgetData.public_key,
+          sandbox: widgetData.sandbox,
+          email: widgetData.email,
+          phone: widgetData.phone,
+          name: widgetData.name,
+          data: widgetData.metadata,
+          callback: (paymentResponse: any) => {
+            console.log('7. Callback du widget appelé:', paymentResponse);
+            
+            if (paymentResponse.status === 'success') {
+              setPaymentStatus('completed');
+              setCurrentTransactionId(paymentResponse.transactionId);
+              if (onPaymentSuccess) {
+                onPaymentSuccess(paymentResponse.transactionId);
+              }
+            } else {
+              setPaymentStatus('failed');
+              if (onPaymentError) {
+                onPaymentError('Le paiement a échoué');
+              }
+            }
+            setLoading(false);
+          }
+        });
+      } else {
+        console.log('5. Erreur: réponse invalide', response);
+        throw new Error('Réponse invalide du serveur');
+      }
+      
+    } catch (error: any) {
+      console.error('8. Erreur attrapée:', error);
+      setPaymentStatus('failed');
+      setLoading(false);
+      if (onPaymentError) {
+        onPaymentError(error.message || 'Erreur lors du paiement');
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Nouvelle Contribution
+        </h3>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Indicateur de chargement du widget KkiaPay */}
+      {!isLoaded && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+            </div>
+            <span className="text-yellow-800 dark:text-yellow-200 font-medium">
+              Chargement du système de paiement...
+            </span>
+          </div>
+        </div>
+      )}
+
+      {paymentStatus === 'completed' && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+              <span className="text-green-600 dark:text-green-400">✅</span>
+            </div>
+            <div>
+              <p className="text-green-800 dark:text-green-200 font-medium">Paiement effectué avec succès !</p>
+              <p className="text-green-600 dark:text-green-400 text-sm">Transaction: {currentTransactionId}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {paymentStatus === 'failed' && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
+              <span className="text-red-600 dark:text-red-400">❌</span>
+            </div>
+            <p className="text-red-800 dark:text-red-200 font-medium">Le paiement a échoué. Veuillez réessayer.</p>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              Type de contribution
+            </label>
+            <select
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200"
+            >
+              <option value="don">Don</option>
+              <option value="offrande">Offrande</option>
+              <option value="dime">Dîme</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              Montant (FCFA)
+            </label>
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              value={formData.amount}
+              onChange={handleInputChange}
+              min="100"
+              step="100"
+              required
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200"
+              placeholder="1000"
+            />
+            <small className="text-gray-500 dark:text-gray-400 text-sm mt-1 block">Montant minimum: 100 FCFA</small>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+            Numéro de téléphone
+          </label>
+          <input
+            type="tel"
+            id="phone_number"
+            name="phone_number"
+            value={formData.phone_number}
+            onChange={handleInputChange}
+            placeholder="0197000000"
+            required
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200"
+          />
+          <small className="text-gray-500 dark:text-gray-400 text-sm mt-1 block">Format: 97000000 (numéro Bénin/Mobile Money)</small>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email || ''}
+              onChange={handleInputChange}
+              placeholder="votre@email.com"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="fullname" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              Nom complet
+            </label>
+            <input
+              type="text"
+              id="fullname"
+              name="fullname"
+              value={formData.fullname || ''}
+              onChange={handleInputChange}
+              placeholder="Votre nom complet"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200"
+            />
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={loading || paymentStatus === 'pending' || !isLoaded}
+          className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center space-x-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>Initialisation...</span>
+            </div>
+          ) : paymentStatus === 'pending' ? (
+            <div className="flex items-center justify-center space-x-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>Paiement en cours...</span>
+            </div>
+          ) : (
+            'Payer avec Kkiapay'
+          )}
+        </button>
+      </form>
+
+      {paymentStatus === 'pending' && currentTransactionId && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+              <span className="text-blue-600 dark:text-blue-400">⏳</span>
+            </div>
+            <div>
+              <p className="text-blue-800 dark:text-blue-200 font-medium">Paiement initialisé</p>
+              <p className="text-blue-600 dark:text-blue-400 text-sm">Transaction: {currentTransactionId}</p>
+              <p className="text-blue-600 dark:text-blue-400 text-sm mt-1">Veuillez compléter le paiement dans la fenêtre ouverte...</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Composant principal Contributions
 const Contributions: React.FC = () => {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortType, setSortType] = useState('');
   const [sortDate, setSortDate] = useState('');
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   const fetchContributions = async () => {
     try {
@@ -55,6 +409,16 @@ const Contributions: React.FC = () => {
   const handleReset = () => {
     setSortType('');
     setSortDate('');
+  };
+
+  // Gestion des succès de paiement
+  const handlePaymentSuccess = (_transactionId: string) => {
+    fetchContributions();
+    setShowPaymentForm(false);
+  };
+
+  const handlePaymentError = (error: string) => {
+    console.error('Erreur de paiement:', error);
   };
 
   // Fonction pour obtenir la couleur du statut
@@ -128,10 +492,36 @@ const Contributions: React.FC = () => {
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
             Contributions
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6">
             Suivez toutes les contributions et dons de notre communauté
           </p>
+          
+          {/* Bouton pour ouvrir le formulaire de paiement */}
+          <button
+            onClick={() => setShowPaymentForm(true)}
+            className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-2xl transition-all duration-200 transform hover:scale-105 hover:shadow-2xl"
+          >
+            <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Faire une contribution
+          </button>
         </div>
+
+        {/* Modal pour le formulaire de paiement */}
+        {showPaymentForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-8">
+                <KkiapayPaymentForm
+                  onPaymentSuccess={handlePaymentSuccess}
+                  onPaymentError={handlePaymentError}
+                  onClose={() => setShowPaymentForm(false)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -282,6 +672,14 @@ const Contributions: React.FC = () => {
                   : "Aucune contribution ne correspond à vos critères de filtrage."
                 }
               </p>
+              {contributions.length === 0 && (
+                <button
+                  onClick={() => setShowPaymentForm(true)}
+                  className="mt-6 inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors font-medium"
+                >
+                  Faire la première contribution
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">

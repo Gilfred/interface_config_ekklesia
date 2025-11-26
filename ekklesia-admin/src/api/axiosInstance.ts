@@ -18,3 +18,12 @@ axiosInstance.interceptors.request.use(
 );
 
 export default axiosInstance;
+
+
+// {
+//   "amount": 100,
+//   "phone_number": "0197000000",
+//   "email": "toto@gmail.com",
+//   "fullname": "Test User",
+//   "type": "don"
+// }
