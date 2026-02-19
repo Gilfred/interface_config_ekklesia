@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUsersMe } from '../api/users';
+import { logoutUser } from '../api/auth';
 import { LogOut, User, Settings, Bell, Search } from 'lucide-react';
 
 interface User {
@@ -8,7 +9,7 @@ interface User {
   role: {
     name: string;
   };
-  // Add other user properties here as needed
+  // Ajoutez d'autres propriétés si nécessaire
 }
 
 const Navbar: React.FC = () => {
@@ -24,7 +25,6 @@ const Navbar: React.FC = () => {
         setUser(userData);
       } catch (error: any) {
         console.error('Failed to fetch user:', error);
-        // Handle error, e.g., redirect to login if unauthorized
         if (error.response && error.response.status === 401) {
           navigate('/login');
         }
@@ -34,25 +34,20 @@ const Navbar: React.FC = () => {
     fetchUser();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('ekklesia-token');
+  const handleLogout = async () => {
+    await logoutUser(); // Appel à la fonction de déconnexion
     navigate('/login');
   };
 
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm dark:bg-gray-900/95 dark:border-gray-700">
-      {/* Logo */}
+      {/* Logo commenté */}
       {/* <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white dark:border-gray-700 bg-white shadow-md">
-        <img 
-          src={logo} 
-          alt="logo de l'église" 
-          className="h-full w-full object-cover" 
-        />
+        <img src={logo} alt="logo de l'église" className="h-full w-full object-cover" />
       </div> */}
 
       {/* Section Centrale avec Titre et Barre de Recherche */}
       <div className="flex-1 max-w-2xl mx-8">
-        {/* Titre au-dessus de la barre de recherche */}
         <div className="text-center mb-3">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             Eglise des assemblées de Dieu
@@ -62,7 +57,6 @@ const Navbar: React.FC = () => {
           </p>
         </div>
         
-        {/* Barre de recherche */}
         <div className="relative">
           <Search 
             size={20} 
@@ -90,7 +84,6 @@ const Navbar: React.FC = () => {
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
         </button>
 
-        {/* Séparateur */}
         <div className="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
 
         {/* Profil Utilisateur */}
@@ -123,7 +116,6 @@ const Navbar: React.FC = () => {
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-lg 
                           border border-gray-200 dark:border-gray-700 py-2 z-50 animate-in fade-in-0 zoom-in-95">
-              {/* Header du dropdown */}
               <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {user?.email}
@@ -133,7 +125,6 @@ const Navbar: React.FC = () => {
                 </p>
               </div>
 
-              {/* Items du menu */}
               <button 
                 onClick={() => {
                   setIsDropdownOpen(false);

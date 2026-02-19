@@ -1,4 +1,5 @@
 import axiosInstance from './axiosInstance';
+// import axios from 'axios'; // pour l'appel direct (évite l'intercepteur)
 
 export const requestPasswordReset = async (email: string) => {
   try {
@@ -79,5 +80,20 @@ export const getCurrentUser = async () => {
       throw new Error('Non authentifié');
     }
     throw new Error('Erreur lors de la récupération des informations utilisateur');
+  }
+};
+
+export const logoutUser = async (): Promise<void> => {
+  const token = localStorage.getItem('ekklesia-token');
+  if (!token) return;
+
+  try {
+    // Appel au backend pour invalider le token (si implémenté plus tard)
+    await axiosInstance.post('/api/v1/auth/logout');
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion côté serveur :', error);
+  } finally {
+    // Supprimer le token localement quoi qu'il arrive
+    localStorage.removeItem('ekklesia-token');
   }
 };
